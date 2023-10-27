@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
 	"github.com/vcoltfre/godo/src/data"
+	"github.com/vcoltfre/godo/src/ui"
 )
 
 type createTaskData struct {
@@ -141,6 +142,8 @@ func Start(bind string) error {
 
 	e.HideBanner = true
 	e.HidePort = true
+
+	e.GET("/", ui.GetIndex)
 
 	e.POST("/tasks", createTask)
 	e.GET("/tasks", getTasks)

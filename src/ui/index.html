@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Godo</title>
+  </head>
+
+  <style>
+    :root {
+      --color-bg: #1e1e1e;
+      --color-bg-secondary: #2e2e2e;
+      --color-bg-tertiary: #3e3e3e;
+      --color-bg-done: #21611c;
+      --color-fg: #fff;
+
+      --color-link: #007bff;
+      --color-link-hover: #0069d9;
+
+      --color-btn-primary: #007bff;
+      --color-btn-pimary-hover: #0069d9;
+
+      --color-btn-danger: #f54c4c;
+      --color-btn-danger-hover: #f12c2c;
+    }
+
+    :root,
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      background-color: var(--color-bg);
+      color: var(--color-fg);
+    }
+
+    nav {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      background-color: var(--color-bg-secondary);
+      padding: 0 2%;
+      height: 2.5rem;
+    }
+
+    main {
+      padding: 0 2%;
+    }
+
+    @media only screen and (min-width: 768px) {
+      nav,
+      main {
+        padding: 0 20%;
+      }
+    }
+
+    main h2 {
+      margin-top: 1rem;
+    }
+
+    .main-header {
+      display: flex;
+      flex-direction: row;
+      flex-grow: 1;
+      align-items: center;
+    }
+
+    .create-menu-wrapper {
+      z-index: 10;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      backdrop-filter: blur(5px);
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .create-todo-menu {
+      width: 80%;
+      height: 60%;
+      background-color: var(--color-bg-secondary);
+      border-radius: 0.5rem;
+      padding: 1rem;
+    }
+
+    @media only screen and (max-width: 768px) {
+      .create-todo-menu {
+        width: 98%;
+        height: 98%;
+      }
+    }
+
+    #createTodoInput {
+      width: 100%;
+      height: calc(100% - 3rem);
+      resize: none;
+      border-radius: 0.25rem;
+      border: none;
+      background-color: var(--color-bg-tertiary);
+      color: var(--color-fg);
+      padding: 0.25rem;
+    }
+
+    .create-todo-menu .btn-primary {
+      margin-top: 1rem;
+      width: 48%;
+      margin-right: 2%;
+    }
+
+    .create-todo-menu .btn-danger {
+      margin-top: 1rem;
+      width: 48%;
+      margin-left: 2%;
+    }
+
+    .todo-header {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+    }
+
+    .todo {
+      background-color: var(--color-bg-secondary);
+      border-radius: 0.25rem;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .todo-header .btn-primary {
+      margin-right: 0.5rem;
+    }
+
+    .done {
+      background-color: var(--color-bg-done);
+    }
+
+    .fg {
+      flex-grow: 1;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+      padding: 0;
+    }
+
+    button {
+      border: none;
+      outline: none;
+      cursor: pointer;
+      border-radius: 0.25rem;
+      color: var(--color-fg);
+      padding: 0.25rem 1rem;
+      height: 2rem;
+    }
+
+    .btn-primary {
+      background-color: var(--color-btn-primary);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--color-btn-pimary-hover);
+    }
+
+    .btn-danger {
+      background-color: var(--color-btn-danger);
+    }
+
+    .btn-danger:hover {
+      background-color: var(--color-btn-danger-hover);
+    }
+
+    a,
+    a:visited {
+      text-decoration: none;
+      color: var(--color-link);
+    }
+
+    a:hover {
+      color: var(--color-link-hover);
+      text-decoration: underline;
+    }
+  </style>
+
+  <body>
+    <nav>
+      <h1>Godo</h1>
+      <div class="fg"></div>
+      <a href="https://github.com/vcokltfre/godo">GitHub</a>
+    </nav>
+    <main>
+      <div class="main-header">
+        <h2>
+          Todos (<span id="totalTodos">0</span> total,
+          <span id="doneTodos">0</span> done)
+        </h2>
+        <div class="fg"></div>
+        <button class="btn-primary" onclick="createTodoMenu()">Create</button>
+      </div>
+      <div class="todos"></div>
+    </main>
+  </body>
+
+  <script defer>
+    let todos = [];
+
+    async function error(resp) {
+      console.log(resp); // TODO: Handle error
+
+      throw new Error("An error occurred");
+    }
+
+    async function getTodos() {
+      const resp = await fetch("/tasks");
+      if (!resp.ok) return await error(resp);
+      const data = await resp.json();
+      todos = data;
+      setTimeout(rerender);
+      return data;
+    }
+
+    async function createTodo(content) {
+      const resp = await fetch("/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content }),
+      });
+      if (!resp.ok) return await error(resp);
+      const data = await resp.json();
+      todos.push(data);
+      setTimeout(rerender);
+      return data;
+    }
+
+    async function deleteTodo(id) {
+      const resp = await fetch(`/tasks/${id}`, {
+        method: "DELETE",
+      });
+      if (!resp.ok) return await error(resp);
+      let newTodos = [];
+      for (const todo of todos) {
+        if (todo.id !== id) {
+          newTodos.push(todo);
+        }
+      }
+      todos = newTodos;
+      setTimeout(rerender);
+    }
+
+    async function markTodoDone(id) {
+      const resp = await fetch(`/tasks/${id}/done`, {
+        method: "POST",
+      });
+      if (!resp.ok) return await error(resp);
+      for (const todo of todos) {
+        if (todo.id === id) {
+          todo.done = true;
+        }
+      }
+      setTimeout(rerender);
+    }
+
+    async function markTodoUndone(id) {
+      const resp = await fetch(`/tasks/${id}/done`, {
+        method: "DELETE",
+      });
+      if (!resp.ok) return await error(resp);
+      for (const todo of todos) {
+        if (todo.id === id) {
+          todo.done = false;
+        }
+      }
+      setTimeout(rerender);
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      const todos = await getTodos();
+
+      const totalTodos = document.getElementById("totalTodos");
+      totalTodos.innerText = todos.length;
+
+      const doneTodos = document.getElementById("doneTodos");
+      doneTodos.innerText = todos.filter((t) => t.done).length;
+    });
+
+    function createTodoMenu() {
+      if (document.querySelector(".create-menu-wrapper")) {
+        document.querySelector(".create-menu-wrapper").remove();
+      }
+
+      let el = document.createElement("div");
+      el.id = "createTodoMenu";
+      el.className = "create-todo-menu";
+
+      let input = document.createElement("textarea");
+      input.placeholder = "I need to...";
+      input.id = "createTodoInput";
+
+      let createBtn = document.createElement("button");
+      createBtn.innerText = "Create";
+      createBtn.className = "btn-primary";
+      createBtn.onclick = () => {
+        const value = document.getElementById("createTodoInput").value;
+        document.querySelector(".create-menu-wrapper").remove();
+
+        createTodo(value);
+      };
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          const value = document.getElementById("createTodoInput").value;
+          document.querySelector(".create-menu-wrapper").remove();
+
+          createTodo(value);
+        }
+      });
+
+      let cancelBtn = document.createElement("button");
+      cancelBtn.innerText = "Cancel";
+      cancelBtn.className = "btn-danger";
+      cancelBtn.onclick = () => {
+        document.querySelector(".create-menu-wrapper").remove();
+      };
+
+      el.appendChild(input);
+      el.appendChild(createBtn);
+      el.appendChild(cancelBtn);
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "create-menu-wrapper";
+      wrapper.appendChild(el);
+
+      document.querySelector("main").appendChild(wrapper);
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        if (document.querySelector(".create-menu-wrapper")) {
+          document.querySelector(".create-menu-wrapper").remove();
+        }
+      }
+    });
+
+    function createTodoEl(todo) {
+      let el = document.createElement("div");
+      el.className = "todo";
+      el.id = `todo-${todo.id}`;
+      el.classList.add(todo.done ? "done" : "undone");
+
+      let header = document.createElement("div");
+      header.className = "todo-header";
+
+      let todoNameEl = document.createElement("h3");
+      todoNameEl.innerText = `Todo ${todo.id}`;
+
+      let grow = document.createElement("div");
+      grow.className = "fg";
+
+      let doneBtn = document.createElement("button");
+      doneBtn.className = "btn-primary";
+      doneBtn.innerText = todo.done ? "Undone" : "Done";
+      doneBtn.onclick = () => {
+        if (doneBtn.innerText === "Undone") {
+          markTodoUndone(todo.id);
+          doneBtn.innerText = "Undone";
+          el.classList.remove("done");
+        } else {
+          markTodoDone(todo.id);
+          doneBtn.innerText = "Done";
+          el.classList.add("done");
+        }
+      };
+
+      let deleteBtn = document.createElement("button");
+      deleteBtn.className = "btn-danger";
+      deleteBtn.innerText = "Delete";
+      deleteBtn.onclick = () => {
+        deleteTodo(todo.id);
+      };
+
+      let content = document.createElement("p");
+      content.innerText = todo.content;
+
+      header.appendChild(todoNameEl);
+      header.appendChild(grow);
+      header.appendChild(doneBtn);
+      header.appendChild(deleteBtn);
+
+      el.appendChild(header);
+      el.appendChild(content);
+
+      return el;
+    }
+
+    function rerender() {
+      const todosEl = document.querySelector(".todos");
+      todosEl.innerHTML = "";
+
+      for (const todo of todos) {
+        todosEl.appendChild(createTodoEl(todo));
+      }
+    }
+  </script>
+</html>

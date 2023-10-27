@@ -102,18 +102,18 @@
       border: none;
       background-color: var(--color-bg-tertiary);
       color: var(--color-fg);
-      padding: 0.25rem;
+      padding: 0.5rem;
     }
 
     .create-todo-menu .btn-primary {
       margin-top: 1rem;
-      width: 48%;
+      width: 49%;
       margin-right: 2%;
     }
 
     .create-todo-menu .btn-danger {
       margin-top: 1rem;
-      width: 48%;
+      width: 49%;
       margin-left: 2%;
     }
 
@@ -192,6 +192,14 @@
       color: var(--color-link-hover);
       text-decoration: underline;
     }
+
+    textarea,
+    textarea:hover,
+    textarea:active,
+    textarea:focus {
+      outline: none;
+      border: none;
+    }
   </style>
 
   <body>
@@ -225,7 +233,7 @@
     async function getTodos() {
       const resp = await fetch("/tasks");
       if (!resp.ok) return await error(resp);
-      const data = await resp.json();
+      const data = (await resp.json()) || [];
       todos = data;
       setTimeout(rerender);
       return data;
@@ -345,6 +353,8 @@
       wrapper.appendChild(el);
 
       document.querySelector("main").appendChild(wrapper);
+
+      input.focus();
     }
 
     document.addEventListener("keydown", (e) => {
